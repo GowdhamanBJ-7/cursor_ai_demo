@@ -6,7 +6,25 @@ import logging
 import sys
 import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+def _resolve_project_root() -> str:
+    """Resolve project root for both script and notebook-style execution."""
+    if "__file__" in globals():
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+    cwd = os.getcwd()
+    candidates = [cwd, os.path.abspath(os.path.join(cwd, ".."))]
+    for candidate in candidates:
+        if os.path.isdir(os.path.join(candidate, "config")) and os.path.isdir(
+            os.path.join(candidate, "src")
+        ):
+            return candidate
+    return cwd
+
+
+PROJECT_ROOT = _resolve_project_root()
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from pyspark.sql import SparkSession
 
