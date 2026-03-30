@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import current_timestamp, input_file_name
+from pyspark.sql.functions import current_timestamp, input_file_name, col, lit
 from pyspark.sql.types import StructType
 
 
@@ -66,12 +66,22 @@ def add_audit_columns(df: DataFrame) -> DataFrame:
     """Add ingestion metadata columns for data lineage and traceability."""
     try:
         logger.info("Adding Bronze audit columns.")
-        enriched_df = (
-            df.withColumn("ingestion_time", current_timestamp())
-            .withColumn("source_file", input_file_name())
-        )
+
+        if "_metadata" in df.columns:
+            enriched_df = (
+                df.withColumn("ingestion_time", current_timestamp())
+                  .withColumn("source_file", col("_metadata.file_path"))
+            )
+        else:
+            enriched_df = (
+                df.withColumn("ingestion_time", current_timestamp())
+                  .withColumn("source_file", lit("unknown"))
+            )
+
         logger.info("Audit columns added successfully.")
+
         return enriched_df
+
     except Exception as exc:
         logger.exception("Failed to add Bronze audit columns.")
         raise RuntimeError("Failed to add audit columns to Bronze dataframe.") from exc
