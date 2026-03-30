@@ -1,0 +1,57 @@
+bundle:
+  name: nyc_taxi_medallion
+
+variables:
+  catalog:
+    description: Unity Catalog catalog
+    default: main
+  schema:
+    description: Unity Catalog schema
+    default: nyc_taxi
+  source_path:
+    description: Input dataset path
+    default: /databricks-datasets/nyctaxi/tripdata/yellow/
+  source_format:
+    description: Source file format
+    default: parquet
+
+resources:
+  jobs:
+    nyc_taxi_medallion_job:
+      name: nyc_taxi_medallion_job
+      trigger:
+        pause_status: UNPAUSED
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: Asia/Kolkata
+      tasks:
+        - task_key: nyc_taxi_etl_task
+          spark_python_task:
+            python_file: ./pipeline/etl_pipeline.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --schema
+              - ${var.schema}
+              - --source-path
+              - ${var.source_path}
+              - --source-format
+              - ${var.source_format}
+          environment_key: default
+          performance_target: STANDARD
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/bundles/${bundle.name}/dev
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/bundles/${bundle.name}/prod
