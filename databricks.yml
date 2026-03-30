@@ -19,11 +19,11 @@ resources:
   jobs:
     nyc_taxi_medallion_job:
       name: nyc_taxi_medallion_job
-      trigger:
-        pause_status: UNPAUSED
+
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
-        timezone_id: Asia/Kolkata
+        timezone_id: "Asia/Kolkata"
+
       tasks:
         - task_key: nyc_taxi_etl_task
           spark_python_task:
@@ -37,8 +37,11 @@ resources:
               - ${var.source_path}
               - --source-format
               - ${var.source_format}
+
+          compute: serverless
+
           environment_key: default
-          performance_target: STANDARD
+
       environments:
         - environment_key: default
           spec:
@@ -54,4 +57,4 @@ targets:
   prod:
     mode: production
     workspace:
-      root_path: /Workspace/Shared/bundles/${bundle.name}/prod
+      root_path: /Workspace/Users/${workspace.current_user.userName}/bundles/${bundle.name}/prod
