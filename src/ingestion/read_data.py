@@ -12,6 +12,17 @@ from pyspark.sql.types import StructType
 logger = logging.getLogger(__name__)
 
 
+def _resolve_source_format(source_path: str, source_format: str) -> str:
+    """Resolve effective source format for mixed-file folders."""
+    if source_format != "auto":
+        return source_format
+
+    lowered = source_path.lower()
+    if lowered.endswith(".parquet") or "parquet" in lowered:
+        return "parquet"
+    return "csv"
+
+
 def read_raw_data(
     spark: SparkSession,
     source_path: str,
@@ -20,14 +31,31 @@ def read_raw_data(
 ) -> DataFrame:
     """Read NYC taxi source files with strict schema enforcement."""
     try:
-        logger.info("Bronze read started. path=%s format=%s", source_path, source_format)
-        reader = spark.read.format(source_format).schema(schema)
+        effective_format = _resolve_source_format(source_path, source_format)
+        logger.info(
+            "Bronze read started. path=%s format=%s (requested=%s)",
+            source_path,
+            effective_format,
+            source_format,
+        )
+        reader = (
+            spark.read.format(effective_format)
+            .schema(schema)
+            .option("recursiveFileLookup", "true")
+            .option("ignoreCorruptFiles", "true")
+        )
 
-        if source_format == "csv":
-            reader = reader.option("header", "true").option("mode", "FAILFAST")
+        if effective_format == "csv":
+            reader = (
+                reader.option("header", "true")
+                .option("mode", "PERMISSIVE")
+                .option("pathGlobFilter", "*.csv*")
+            )
+        else:
+            reader = reader.option("pathGlobFilter", "*.parquet")
 
         df = reader.load(source_path)
-        logger.info("Bronze read succeeded. record_count=%s", df.count())
+        logger.info("Bronze read succeeded. columns=%s", ", ".join(df.columns))
         return df
     except Exception as exc:
         logger.exception("Bronze read failed.")

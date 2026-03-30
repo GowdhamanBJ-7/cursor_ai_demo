@@ -58,9 +58,9 @@ def parse_args() -> PipelineConfig:
     )
     parser.add_argument(
         "--source-format",
-        default="parquet",
-        choices=["parquet", "csv"],
-        help="Input file format",
+        default="auto",
+        choices=["auto", "parquet", "csv"],
+        help="Input file format. Use 'auto' for Databricks dataset folders with mixed file types.",
     )
     parser.add_argument("--bronze-table", default="taxi_trips_bronze")
     parser.add_argument("--silver-table", default="taxi_trips_silver")

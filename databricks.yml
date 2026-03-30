@@ -13,7 +13,7 @@ variables:
     default: /databricks-datasets/nyctaxi/tripdata/yellow/
   source_format:
     description: Source file format
-    default: parquet
+    default: auto
 
 resources:
   jobs:
